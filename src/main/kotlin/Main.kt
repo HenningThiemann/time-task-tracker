@@ -1,18 +1,21 @@
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.*
+import androidx.compose.ui.window.Tray
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import kotlinx.coroutines.delay
+import java.awt.AlphaComposite
+import java.awt.Color
+import java.awt.Font
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.time.Duration
 import java.time.LocalDateTime
@@ -39,20 +42,19 @@ fun main() = application {
     var isVisible by remember { mutableStateOf(false) }
     val taskManager = remember { TaskManager() }
     var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO)) }
-    var lastMinutes by remember { mutableStateOf(-1L) }
+    var tooltipText by remember { mutableStateOf(Strings.APP_TITLE) }
 
     // Update menu bar every second
     LaunchedEffect(Unit) {
         while (true) {
             taskManager.updateElapsedTime()
-            
-            // Only update tray icon when minutes change to reduce unnecessary regeneration
-            val currentMinutes = taskManager.elapsedTime.value.toMinutes()
-            if (currentMinutes != lastMinutes) {
-                trayIcon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value)
-                lastMinutes = currentMinutes
-            }
-            
+
+            // Update tray icon every second to show current time
+            trayIcon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value)
+
+            // Update tooltip text every second
+            tooltipText = buildTooltipText(taskManager.currentTask.value, taskManager.elapsedTime.value)
+
             delay(1000)
         }
     }
@@ -60,7 +62,7 @@ fun main() = application {
     // Menu bar tray icon
     Tray(
         icon = BitmapPainter(trayIcon.toComposeImageBitmap()),
-        tooltip = Strings.APP_TITLE,
+        tooltip = tooltipText,
         menu = {
             Item(Strings.MENU_SHOW_WINDOW) {
                 isVisible = true
@@ -120,9 +122,9 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (currentTask != null) 
-                        MaterialTheme.colorScheme.primaryContainer 
-                    else 
+                    containerColor = if (currentTask != null)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
                         MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
@@ -276,9 +278,9 @@ class TaskManager {
     val currentTask = mutableStateOf<String?>(null)
     val elapsedTime = mutableStateOf(Duration.ZERO)
     val taskHistory = mutableStateOf<List<CompletedTask>>(emptyList())
-    
+
     private var startTime: LocalDateTime? = null
-    
+
     companion object {
         private const val MAX_HISTORY_SIZE = 100 // Keep last 100 tasks to prevent unbounded growth
     }
@@ -292,23 +294,23 @@ class TaskManager {
     fun stopTask() {
         val task = currentTask.value
         val start = startTime
-        
+
         if (task != null && start != null) {
             val endTime = LocalDateTime.now()
             val duration = Duration.between(start, endTime)
-            
+
             val completedTask = CompletedTask(
                 name = task,
                 startTime = start,
                 endTime = endTime,
                 duration = duration
             )
-            
+
             // Add new task and keep only the last MAX_HISTORY_SIZE entries
             val newHistory = (taskHistory.value + completedTask).takeLast(MAX_HISTORY_SIZE)
             taskHistory.value = newHistory
         }
-        
+
         currentTask.value = null
         startTime = null
         elapsedTime.value = Duration.ZERO
@@ -335,40 +337,64 @@ fun formatDuration(duration: Duration): String {
     return String.format("%02d:%02d:%02d", hours, minutes, seconds)
 }
 
-fun createTrayIcon(currentTask: String?, elapsedTime: Duration): BufferedImage {
-    val size = 22
-    val image = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
-    val g = image.createGraphics()
-    
-    try {
-        // Clear background
-        g.color = java.awt.Color(0, 0, 0, 0)
-        g.fillRect(0, 0, size, size)
-        
-        // Draw icon
-        if (currentTask != null) {
-            // Active - draw filled circle with time
-            g.color = java.awt.Color(76, 175, 80) // Green
-            g.fillOval(2, 2, size - 4, size - 4)
-            
-            // Draw time text
-            g.color = java.awt.Color.WHITE
-            g.font = java.awt.Font("Arial", java.awt.Font.BOLD, 10)
-            val timeText = "${elapsedTime.toMinutes()}m"
-            val metrics = g.fontMetrics
-            val x = (size - metrics.stringWidth(timeText)) / 2
-            val y = (size - metrics.height) / 2 + metrics.ascent
-            g.drawString(timeText, x, y)
-        } else {
-            // Inactive - draw hollow circle
-            g.color = java.awt.Color(158, 158, 158) // Gray
-            g.fillOval(2, 2, size - 4, size - 4)
-            g.color = java.awt.Color(224, 224, 224)
-            g.fillOval(4, 4, size - 8, size - 8)
-        }
-    } finally {
-        g.dispose()
+// Kompaktes Format für macOS Tray (nur HH:MM ohne Sekunden)
+fun formatDurationForTray(duration: Duration): String {
+    val hours = duration.toHours()
+    val minutes = duration.toMinutesPart()
+    return String.format("%d:%02d", hours, minutes)
+}
+
+fun buildTooltipText(currentTask: String?, elapsedTime: Duration): String {
+    return if (currentTask != null) {
+        "$currentTask - ${formatDuration(elapsedTime)}"
+    } else {
+        Strings.APP_TITLE
     }
-    
-    return image
+}
+
+fun createTrayIcon(currentTask: String?, elapsedTime: Duration): BufferedImage {
+    // macOS Menu Bar Icons: Template Images mit @2x für Retina
+    // Standard-Höhe: 22pt (44px @2x)
+    // Breite variabel, aber kompakt wie die Uhrzeit
+    val height = 44  // @2x für Retina
+    val width = 60   // Kompakt für "H:MM" Format (wie macOS Uhrzeit)
+
+    val img = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+    val g = img.createGraphics()
+
+    // High-Quality Rendering für Retina
+    g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+    g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+    g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+
+    // Transparenter Hintergrund
+    g.composite = AlphaComposite.Clear
+    g.fillRect(0, 0, width, height)
+    g.composite = AlphaComposite.SrcOver
+
+    // Schwarzer Text (Template Image - macOS invertiert automatisch)
+    g.color = Color.WHITE
+
+    // System-Font ähnlich wie macOS Menüleiste (SF Pro auf macOS)
+    // Wir verwenden SansSerif mit normaler Stärke für bessere Lesbarkeit
+    val fontSize = 26  // @2x Größe, entspricht ~13pt
+    g.font = Font(".AppleSystemUIFont", Font.PLAIN, fontSize)
+
+    // Fallback falls System-Font nicht verfügbar
+    if (g.font.family == "Dialog") {
+        g.font = Font(Font.SANS_SERIF, Font.PLAIN, fontSize)
+    }
+
+    val text = formatDurationForTray(duration = elapsedTime)
+    val fontMetrics = g.fontMetrics
+
+    // Zentriere den Text
+    val textWidth = fontMetrics.stringWidth(text)
+    val x = (width - textWidth) / 2
+    val y = (height - fontMetrics.height) / 2 + fontMetrics.ascent
+
+    g.drawString(text, x, y)
+
+    g.dispose()
+    return img
 }
