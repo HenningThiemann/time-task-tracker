@@ -30,11 +30,6 @@ compose.desktop {
     application {
         mainClass = "MainKt"
 
-        // JVM arguments to hide dock icon on macOS
-        jvmArgs += listOf(
-            "-Dapple.awt.UIElement=true"
-        )
-
         nativeDistributions {
             targetFormats(TargetFormat.Dmg)
             packageName = "TimeTaskTracker"
@@ -45,6 +40,7 @@ compose.desktop {
 
             macOS {
                 bundleID = "com.henningthiemann.timetasktracker"
+                iconFile.set(project.file("src/main/resources/app-icon.icns"))
             }
         }
     }

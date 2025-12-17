@@ -17,6 +17,7 @@ import manager.TaskManager
 import ui.tabs.ProjectsTab
 import ui.tabs.TasksTab
 import ui.theme.ThemeManager
+import util.AppIconUtils
 import util.buildTooltipText
 import util.createTrayIcon
 import util.Logger
@@ -95,7 +96,8 @@ fun main() = application {
                 isVisible = false
             },
             title = Strings.APP_TITLE,
-            state = rememberWindowState(width = 1200.dp, height = 800.dp)
+            state = rememberWindowState(width = 1200.dp, height = 800.dp),
+            icon = BitmapPainter(AppIconUtils.createStopwatchIcon(128).toComposeImageBitmap())
         ) {
             val isDarkMode by ThemeManager.isDarkMode
 
