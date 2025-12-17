@@ -6,16 +6,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.*
 import kotlinx.coroutines.delay
-import java.awt.SystemTray
-import java.awt.Tray
-import java.awt.TrayIcon
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import java.awt.image.BufferedImage
 import java.time.Duration
 import java.time.LocalDateTime
@@ -24,25 +21,27 @@ import java.time.format.DateTimeFormatter
 fun main() = application {
     var isVisible by remember { mutableStateOf(false) }
     val taskManager = remember { TaskManager() }
+    var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO)) }
 
     // Update menu bar every second
     LaunchedEffect(Unit) {
         while (true) {
             taskManager.updateElapsedTime()
+            trayIcon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value)
             delay(1000)
         }
     }
 
     // Menu bar tray icon
     Tray(
-        icon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value),
+        icon = BitmapPainter(trayIcon.toComposeImageBitmap()),
         tooltip = "Time Task Tracker",
         menu = {
-            Item("Show Window") {
+            Item("Fenster anzeigen") {
                 isVisible = true
             }
             Separator()
-            Item("Quit") {
+            Item("Beenden") {
                 exitApplication()
             }
         },
