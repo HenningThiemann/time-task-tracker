@@ -12,7 +12,11 @@ import java.time.format.DateTimeFormatter
 import util.formatDuration
 
 @Composable
-fun TaskHistoryItem(task: CompletedTask, onRestart: (CompletedTask) -> Unit) {
+fun TaskHistoryItem(
+    task: CompletedTask,
+    onRestart: (CompletedTask) -> Unit,
+    onDelete: (CompletedTask) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -66,6 +70,7 @@ fun TaskHistoryItem(task: CompletedTask, onRestart: (CompletedTask) -> Unit) {
 
             Spacer(modifier = Modifier.width(8.dp))
 
+            // Restart Button
             IconButton(
                 onClick = { onRestart(task) }
             ) {
@@ -73,6 +78,17 @@ fun TaskHistoryItem(task: CompletedTask, onRestart: (CompletedTask) -> Unit) {
                     text = "▶",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Delete Button
+            IconButton(
+                onClick = { onDelete(task) }
+            ) {
+                Text(
+                    text = "🗑",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }

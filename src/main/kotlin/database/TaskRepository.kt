@@ -38,6 +38,20 @@ class TaskRepository(
         }
     }
 
+    fun deleteTask(task: CompletedTask) {
+        val sql = """
+            DELETE FROM completed_tasks
+            WHERE name = ? AND start_time = ? AND end_time = ?
+        """.trimIndent()
+
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, task.name)
+            stmt.setString(2, task.startTime.format(dateTimeFormatter))
+            stmt.setString(3, task.endTime.format(dateTimeFormatter))
+            stmt.executeUpdate()
+        }
+    }
+
     fun getAllTasks(): List<CompletedTask> {
         val sql = """
             SELECT t.name, p.name as project_name, t.start_time, t.end_time, t.duration_seconds
@@ -209,4 +223,3 @@ class TaskRepository(
         )
     }
 }
-

@@ -55,7 +55,8 @@ class TaskManager {
 
     private fun loadTasksFromDatabase() {
         try {
-            val tasks = taskRepository.getRecentTasks(Config.MAX_HISTORY_SIZE)
+            // Lade alle Tasks für Projekt-Übersicht, nicht nur die letzten
+            val tasks = taskRepository.getAllTasks()
             taskHistory.value = tasks
         } catch (e: Exception) {
             e.printStackTrace()
@@ -101,6 +102,15 @@ class TaskManager {
     }
 
     // Task-Verwaltung
+    fun deleteTask(task: CompletedTask) {
+        try {
+            taskRepository.deleteTask(task)
+            loadTasksFromDatabase()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     fun startTask(taskName: String, projectName: String? = null) {
         try {
             val taskId = taskRepository.startTask(taskName, projectName)
@@ -227,4 +237,3 @@ class TaskManager {
         dbConnection.close()
     }
 }
-

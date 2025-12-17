@@ -172,6 +172,9 @@ fun TasksTab(
                                 if (currentTask == null) {
                                     taskManager.restartTask(completedTask)
                                 }
+                            },
+                            onDelete = { completedTask ->
+                                taskManager.deleteTask(completedTask)
                             }
                         )
                     }

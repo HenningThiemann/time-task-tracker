@@ -184,9 +184,12 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                     }
                 )
                 1 -> ProjectsTab(
+                    taskManager = taskManager,
                     projects = projects,
+                    allTasks = taskHistory,
                     onCreateProject = { name -> taskManager.createProject(name) },
-                    onDeleteProject = { id -> taskManager.deleteProject(id) }
+                    onDeleteProject = { id -> taskManager.deleteProject(id) },
+                    onTaskResumed = { selectedTabIndex = 0 }
                 )
             }
         }

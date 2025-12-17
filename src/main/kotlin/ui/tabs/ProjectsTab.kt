@@ -10,16 +10,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import config.Strings
+import manager.TaskManager
+import model.CompletedTask
 import model.Project
 import ui.components.ProjectItem
 
 @Composable
 fun ProjectsTab(
+    taskManager: TaskManager,
     projects: List<Project>,
+    allTasks: List<CompletedTask>,
     onCreateProject: (String) -> Unit,
-    onDeleteProject: (Long) -> Unit
+    onDeleteProject: (Long) -> Unit,
+    onTaskResumed: () -> Unit = {}
 ) {
     var newProjectName by remember { mutableStateOf("") }
+
+    // Gruppiere Tasks nach Projekt
+    val tasksByProject = remember(allTasks, projects) {
+        projects.associateWith { project ->
+            allTasks.filter { it.project == project.name }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -86,7 +98,15 @@ fun ProjectsTab(
                     items(projects) { project ->
                         ProjectItem(
                             project = project,
-                            onDelete = { onDeleteProject(project.id) }
+                            tasks = tasksByProject[project] ?: emptyList(),
+                            onDelete = { onDeleteProject(project.id) },
+                            onResumeTask = { task ->
+                                taskManager.restartTask(task)
+                                onTaskResumed()
+                            },
+                            onDeleteTask = { task ->
+                                taskManager.deleteTask(task)
+                            }
                         )
                     }
                 }
