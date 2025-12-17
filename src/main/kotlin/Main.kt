@@ -19,11 +19,15 @@ import ui.tabs.TasksTab
 import ui.theme.ThemeManager
 import util.buildTooltipText
 import util.createTrayIcon
+import util.Logger
 import java.time.Duration
 
 fun main() = application {
-    var isVisible by remember { mutableStateOf(false) }
-    val taskManager = remember { TaskManager() }
+    var isVisible by remember { mutableStateOf(true) }
+    val taskManager = remember {
+        Logger.info("Main", "TaskManager wird initialisiert...")
+        TaskManager()
+    }
     var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO, false)) }
     var tooltipText by remember { mutableStateOf(Strings.APP_TITLE) }
     var showColon by remember { mutableStateOf(true) }
@@ -31,7 +35,9 @@ fun main() = application {
     // Schließe Datenbankverbindung beim Beenden
     DisposableEffect(Unit) {
         onDispose {
+            Logger.info("Main", "Anwendung wird beendet...")
             taskManager.close()
+            Logger.close()
         }
     }
 
@@ -67,21 +73,27 @@ fun main() = application {
         tooltip = tooltipText,
         menu = {
             Item(Strings.MENU_SHOW_WINDOW) {
+                Logger.debug("Main", "Fenster wird über Tray-Menü geöffnet")
                 isVisible = true
             }
             Separator()
             Item(Strings.MENU_QUIT) {
+                Logger.info("Main", "Beenden über Tray-Menü ausgewählt")
                 exitApplication()
             }
         },
         onAction = {
+            Logger.debug("Main", "Fenster wird über Tray-Icon-Klick geöffnet")
             isVisible = true
         }
     )
 
     if (isVisible) {
         Window(
-            onCloseRequest = { isVisible = false },
+            onCloseRequest = {
+                Logger.debug("Main", "Fenster wird geschlossen")
+                isVisible = false
+            },
             title = Strings.APP_TITLE,
             state = rememberWindowState(width = 1200.dp, height = 800.dp)
         ) {

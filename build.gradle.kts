@@ -40,16 +40,11 @@ compose.desktop {
             packageName = "TimeTaskTracker"
             packageVersion = "1.0.0"
             
+            // Include necessary JVM modules for SQL support
+            modules("java.sql")
+
             macOS {
                 bundleID = "com.henningthiemann.timetasktracker"
-                dockName = "Time Task Tracker"
-                // Set as agent application (menubar only, no dock icon)
-                infoPlist {
-                    extraKeysRawXml = """
-                        <key>LSUIElement</key>
-                        <true/>
-                    """.trimIndent()
-                }
             }
         }
     }
