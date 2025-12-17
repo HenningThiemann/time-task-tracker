@@ -16,6 +16,7 @@ import kotlinx.coroutines.delay
 import manager.TaskManager
 import ui.tabs.ProjectsTab
 import ui.tabs.TasksTab
+import ui.theme.ThemeManager
 import util.buildTooltipText
 import util.createTrayIcon
 import java.time.Duration
@@ -82,9 +83,13 @@ fun main() = application {
         Window(
             onCloseRequest = { isVisible = false },
             title = Strings.APP_TITLE,
-            state = rememberWindowState(width = 1200.dp, height = 1000.dp)
+            state = rememberWindowState(width = 1200.dp, height = 800.dp)
         ) {
-            MaterialTheme {
+            val isDarkMode by ThemeManager.isDarkMode
+
+            MaterialTheme(
+                colorScheme = if (isDarkMode) darkColorScheme() else lightColorScheme()
+            ) {
                 TimeTaskTrackerApp(taskManager)
             }
         }
@@ -99,6 +104,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
     val taskHistory by taskManager.taskHistory
     val projects by taskManager.projects
     val isPaused by taskManager.isPaused
+    val isDarkMode by ThemeManager.isDarkMode
 
     var taskName by remember { mutableStateOf("") }
     var projectName by remember { mutableStateOf("") }
@@ -111,17 +117,35 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header mit Tabs
+            // Header mit Tabs und Dark Mode Toggle
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = Strings.APP_TITLE,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                // Title und Dark Mode Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.width(48.dp)) // Platzhalter für Symmetrie
+
+                    Text(
+                        text = Strings.APP_TITLE,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    IconButton(
+                        onClick = { ThemeManager.toggleTheme() }
+                    ) {
+                        Text(
+                            text = if (isDarkMode) "☀️" else "🌙",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
