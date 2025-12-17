@@ -21,6 +21,9 @@ dependencies {
     // This brings androidx.compose.* packages from JetBrains, not Android
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
+
+    // SQLite Database
+    implementation("org.xerial:sqlite-jdbc:3.47.1.0")
 }
 
 compose.desktop {
