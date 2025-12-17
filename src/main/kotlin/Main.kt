@@ -41,16 +41,28 @@ private object Config {
 fun main() = application {
     var isVisible by remember { mutableStateOf(false) }
     val taskManager = remember { TaskManager() }
-    var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO)) }
+    var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO, false)) }
     var tooltipText by remember { mutableStateOf(Strings.APP_TITLE) }
+    var showColon by remember { mutableStateOf(true) }
 
     // Update menu bar every second
     LaunchedEffect(Unit) {
         while (true) {
             taskManager.updateElapsedTime()
 
+            // Toggle colon visibility every second when task is active
+            if (taskManager.currentTask.value != null) {
+                showColon = !showColon
+            } else {
+                showColon = true
+            }
+
             // Update tray icon every second to show current time
-            trayIcon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value)
+            trayIcon = createTrayIcon(
+                taskManager.currentTask.value,
+                taskManager.elapsedTime.value,
+                showColon
+            )
 
             // Update tooltip text every second
             tooltipText = buildTooltipText(taskManager.currentTask.value, taskManager.elapsedTime.value)
@@ -338,10 +350,11 @@ fun formatDuration(duration: Duration): String {
 }
 
 // Kompaktes Format für macOS Tray (nur HH:MM ohne Sekunden)
-fun formatDurationForTray(duration: Duration): String {
+fun formatDurationForTray(duration: Duration, showColon: Boolean): String {
     val hours = duration.toHours()
     val minutes = duration.toMinutesPart()
-    return String.format("%d:%02d", hours, minutes)
+    val separator = if (showColon) ":" else " "
+    return String.format("%d%s%02d", hours, separator, minutes)
 }
 
 fun buildTooltipText(currentTask: String?, elapsedTime: Duration): String {
@@ -352,7 +365,7 @@ fun buildTooltipText(currentTask: String?, elapsedTime: Duration): String {
     }
 }
 
-fun createTrayIcon(currentTask: String?, elapsedTime: Duration): BufferedImage {
+fun createTrayIcon(currentTask: String?, elapsedTime: Duration, showColon: Boolean): BufferedImage {
     // macOS Menu Bar Icons: Template Images mit @2x für Retina
     // Standard-Höhe: 22pt (44px @2x)
     // Breite variabel, aber kompakt wie die Uhrzeit
@@ -385,7 +398,7 @@ fun createTrayIcon(currentTask: String?, elapsedTime: Duration): BufferedImage {
         g.font = Font(Font.SANS_SERIF, Font.PLAIN, fontSize)
     }
 
-    val text = formatDurationForTray(duration = elapsedTime)
+    val text = formatDurationForTray(duration = elapsedTime, showColon = showColon)
     val fontMetrics = g.fontMetrics
 
     // Zentriere den Text
