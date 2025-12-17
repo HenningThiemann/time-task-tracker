@@ -1,6 +1,8 @@
 package ui.tabs
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,11 +79,11 @@ fun ProjectsTab(
             Card(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    projects.forEach { project ->
+                    items(projects) { project ->
                         ProjectItem(
                             project = project,
                             onDelete = { onDeleteProject(project.id) }

@@ -9,6 +9,7 @@ object Strings {
     const val TASK_NAME_LABEL = "Aufgabenname"
     const val PROJECT_LABEL = "Projekt (optional)"
     const val BUTTON_START = "Start"
+    const val BUTTON_RESUME = "Fortsetzen"
     const val BUTTON_STOP = "Stop"
     const val HISTORY_TITLE = "Verlauf"
     const val TAB_TASKS = "Aufgaben"

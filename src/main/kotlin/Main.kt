@@ -82,7 +82,7 @@ fun main() = application {
         Window(
             onCloseRequest = { isVisible = false },
             title = Strings.APP_TITLE,
-            state = rememberWindowState(width = 400.dp, height = 600.dp)
+            state = rememberWindowState(width = 1200.dp, height = 1000.dp)
         ) {
             MaterialTheme {
                 TimeTaskTrackerApp(taskManager)
@@ -98,6 +98,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
     val elapsedTime by taskManager.elapsedTime
     val taskHistory by taskManager.taskHistory
     val projects by taskManager.projects
+    val isPaused by taskManager.isPaused
 
     var taskName by remember { mutableStateOf("") }
     var projectName by remember { mutableStateOf("") }
@@ -147,6 +148,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                     elapsedTime = elapsedTime,
                     taskHistory = taskHistory,
                     projects = projects,
+                    isPaused = isPaused,
                     taskName = taskName,
                     projectName = projectName,
                     onTaskNameChange = { taskName = it },

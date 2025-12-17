@@ -1,6 +1,8 @@
 package ui.tabs
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +27,7 @@ fun TasksTab(
     elapsedTime: Duration,
     taskHistory: List<CompletedTask>,
     projects: List<Project>,
+    isPaused: Boolean,
     taskName: String,
     projectName: String,
     onTaskNameChange: (String) -> Unit,
@@ -46,51 +49,56 @@ fun TasksTab(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Task Input and Controls
-        OutlinedTextField(
-            value = taskName,
-            onValueChange = onTaskNameChange,
-            label = { Text(Strings.TASK_NAME_LABEL) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = currentTask == null,
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Projekt-Auswahl
+        // Task Input and Controls - Aufgabenname und Projekt in einer Row
         var expandedProjectDropdown by remember { mutableStateOf(false) }
 
-        ExposedDropdownMenuBox(
-            expanded = expandedProjectDropdown,
-            onExpandedChange = { expandedProjectDropdown = !expandedProjectDropdown && currentTask == null }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Aufgabenname
             OutlinedTextField(
-                value = projectName,
-                onValueChange = onProjectNameChange,
-                label = { Text(Strings.PROJECT_LABEL) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                value = taskName,
+                onValueChange = onTaskNameChange,
+                label = { Text(Strings.TASK_NAME_LABEL) },
+                modifier = Modifier.weight(1f),
                 enabled = currentTask == null,
-                singleLine = true,
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedProjectDropdown)
-                }
+                singleLine = true
             )
 
-            ExposedDropdownMenu(
+            // Projekt-Auswahl
+            ExposedDropdownMenuBox(
                 expanded = expandedProjectDropdown,
-                onDismissRequest = { expandedProjectDropdown = false }
+                onExpandedChange = { expandedProjectDropdown = !expandedProjectDropdown && currentTask == null },
+                modifier = Modifier.weight(1f)
             ) {
-                projects.forEach { project ->
-                    DropdownMenuItem(
-                        text = { Text(project.name) },
-                        onClick = {
-                            onProjectNameChange(project.name)
-                            expandedProjectDropdown = false
-                        }
-                    )
+                OutlinedTextField(
+                    value = projectName,
+                    onValueChange = onProjectNameChange,
+                    label = { Text(Strings.PROJECT_LABEL) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    enabled = currentTask == null,
+                    singleLine = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedProjectDropdown)
+                    }
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expandedProjectDropdown,
+                    onDismissRequest = { expandedProjectDropdown = false }
+                ) {
+                    projects.forEach { project ->
+                        DropdownMenuItem(
+                            text = { Text(project.name) },
+                            onClick = {
+                                onProjectNameChange(project.name)
+                                expandedProjectDropdown = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -101,6 +109,7 @@ fun TasksTab(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Start-Button: nur aktiv wenn kein Task läuft
             Button(
                 onClick = onStartTask,
                 modifier = Modifier.weight(1f),
@@ -109,6 +118,21 @@ fun TasksTab(
                 Text(Strings.BUTTON_START)
             }
 
+            // Fortsetzen-Button: nur sichtbar wenn ein Task pausiert ist
+            if (currentTask != null && isPaused) {
+                Button(
+                    onClick = { taskManager.resumeTask() },
+                    modifier = Modifier.weight(1f),
+                    enabled = true,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(Strings.BUTTON_RESUME)
+                }
+            }
+
+            // Stop-Button: nur aktiv wenn ein Task läuft (auch pausiert)
             Button(
                 onClick = { taskManager.stopTask() },
                 modifier = Modifier.weight(1f),
@@ -137,11 +161,11 @@ fun TasksTab(
             Card(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    taskHistory.reversed().take(Config.MAX_HISTORY_ITEMS_DISPLAYED).forEach { task ->
+                    items(taskHistory.reversed().take(Config.MAX_HISTORY_ITEMS_DISPLAYED)) { task ->
                         TaskHistoryItem(
                             task = task,
                             onRestart = { completedTask ->
