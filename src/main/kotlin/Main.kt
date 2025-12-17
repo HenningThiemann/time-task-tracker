@@ -31,16 +31,28 @@ private object Strings {
     const val HISTORY_TITLE = "Verlauf"
 }
 
+private object Config {
+    const val MAX_HISTORY_ITEMS_DISPLAYED = 10
+}
+
 fun main() = application {
     var isVisible by remember { mutableStateOf(false) }
     val taskManager = remember { TaskManager() }
     var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO)) }
+    var lastMinutes by remember { mutableStateOf(-1L) }
 
     // Update menu bar every second
     LaunchedEffect(Unit) {
         while (true) {
             taskManager.updateElapsedTime()
-            trayIcon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value)
+            
+            // Only update tray icon when minutes change to reduce unnecessary regeneration
+            val currentMinutes = taskManager.elapsedTime.value.toMinutes()
+            if (currentMinutes != lastMinutes) {
+                trayIcon = createTrayIcon(taskManager.currentTask.value, taskManager.elapsedTime.value)
+                lastMinutes = currentMinutes
+            }
+            
             delay(1000)
         }
     }
@@ -214,7 +226,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                         modifier = Modifier.padding(16.dp).fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        taskHistory.reversed().take(10).forEach { task ->
+                        taskHistory.reversed().take(Config.MAX_HISTORY_ITEMS_DISPLAYED).forEach { task ->
                             TaskHistoryItem(task)
                         }
                     }
@@ -266,6 +278,10 @@ class TaskManager {
     val taskHistory = mutableStateOf<List<CompletedTask>>(emptyList())
     
     private var startTime: LocalDateTime? = null
+    
+    companion object {
+        private const val MAX_HISTORY_SIZE = 100 // Keep last 100 tasks to prevent unbounded growth
+    }
 
     fun startTask(taskName: String) {
         currentTask.value = taskName
@@ -288,7 +304,9 @@ class TaskManager {
                 duration = duration
             )
             
-            taskHistory.value = taskHistory.value + completedTask
+            // Add new task and keep only the last MAX_HISTORY_SIZE entries
+            val newHistory = (taskHistory.value + completedTask).takeLast(MAX_HISTORY_SIZE)
+            taskHistory.value = newHistory
         }
         
         currentTask.value = null

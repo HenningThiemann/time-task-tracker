@@ -2,7 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("jvm") version "2.1.0"
-    // JetBrains Compose Multiplatform (Desktop) - nicht Android's androidx.compose
+    // JetBrains Compose Multiplatform (Desktop) - not Android's androidx.compose
     id("org.jetbrains.compose") version "1.7.1"
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.0"
 }
@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     // JetBrains Compose Multiplatform Desktop Dependency
-    // Dies bringt androidx.compose.* Packages, die aber von JetBrains stammen
+    // This brings androidx.compose.* packages from JetBrains, not Android
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
 }
