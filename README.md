@@ -44,7 +44,9 @@ Die DMG-Datei wird in `build/compose/binaries/main/dmg/` erstellt.
 ## Technologie-Stack
 
 - **Kotlin** 2.1.0
-- **Compose Multiplatform** 1.7.1
+- **JetBrains Compose Multiplatform** 1.7.1 (Desktop)
+  - _Nicht_ Android's androidx.compose, sondern JetBrains' plattformübergreifendes Compose
+  - Optimiert für Desktop-Anwendungen (macOS, Windows, Linux)
 - **Gradle** 8.11.1
 - **Material 3** Design System
 

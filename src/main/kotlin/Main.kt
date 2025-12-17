@@ -18,6 +18,19 @@ import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+// UI Text Constants - können später in Ressourcen-Dateien ausgelagert werden
+private object Strings {
+    const val APP_TITLE = "Time Task Tracker"
+    const val MENU_SHOW_WINDOW = "Fenster anzeigen"
+    const val MENU_QUIT = "Beenden"
+    const val CURRENT_TASK = "Aktuelle Aufgabe"
+    const val NO_ACTIVE_TASK = "Keine aktive Aufgabe"
+    const val TASK_NAME_LABEL = "Aufgabenname"
+    const val BUTTON_START = "Start"
+    const val BUTTON_STOP = "Stop"
+    const val HISTORY_TITLE = "Verlauf"
+}
+
 fun main() = application {
     var isVisible by remember { mutableStateOf(false) }
     val taskManager = remember { TaskManager() }
@@ -35,13 +48,13 @@ fun main() = application {
     // Menu bar tray icon
     Tray(
         icon = BitmapPainter(trayIcon.toComposeImageBitmap()),
-        tooltip = "Time Task Tracker",
+        tooltip = Strings.APP_TITLE,
         menu = {
-            Item("Fenster anzeigen") {
+            Item(Strings.MENU_SHOW_WINDOW) {
                 isVisible = true
             }
             Separator()
-            Item("Beenden") {
+            Item(Strings.MENU_QUIT) {
                 exitApplication()
             }
         },
@@ -53,7 +66,7 @@ fun main() = application {
     if (isVisible) {
         Window(
             onCloseRequest = { isVisible = false },
-            title = "Time Task Tracker",
+            title = Strings.APP_TITLE,
             state = rememberWindowState(width = 400.dp, height = 600.dp)
         ) {
             MaterialTheme {
@@ -83,7 +96,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
         ) {
             // Header
             Text(
-                text = "Time Task Tracker",
+                text = Strings.APP_TITLE,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -106,16 +119,16 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (currentTask != null) "Aktuelle Aufgabe" else "Keine aktive Aufgabe",
+                        text = if (currentTask != null) Strings.CURRENT_TASK else Strings.NO_ACTIVE_TASK,
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (currentTask != null) {
+                    currentTask?.let { task ->
                         Text(
-                            text = currentTask!!,
+                            text = task,
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -128,7 +141,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                    } else {
+                    } ?: run {
                         Text(
                             text = "--:--:--",
                             style = MaterialTheme.typography.displayMedium,
@@ -144,7 +157,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
             OutlinedTextField(
                 value = taskName,
                 onValueChange = { taskName = it },
-                label = { Text("Aufgabenname") },
+                label = { Text(Strings.TASK_NAME_LABEL) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = currentTask == null,
                 singleLine = true
@@ -166,7 +179,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                     modifier = Modifier.weight(1f),
                     enabled = currentTask == null && taskName.isNotBlank()
                 ) {
-                    Text("Start")
+                    Text(Strings.BUTTON_START)
                 }
 
                 Button(
@@ -177,7 +190,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Stop")
+                    Text(Strings.BUTTON_STOP)
                 }
             }
 
@@ -186,7 +199,7 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
             // Task History
             if (taskHistory.isNotEmpty()) {
                 Text(
-                    text = "Verlauf",
+                    text = Strings.HISTORY_TITLE,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.Start)
@@ -261,13 +274,16 @@ class TaskManager {
     }
 
     fun stopTask() {
-        currentTask.value?.let { name ->
+        val task = currentTask.value
+        val start = startTime
+        
+        if (task != null && start != null) {
             val endTime = LocalDateTime.now()
-            val duration = Duration.between(startTime, endTime)
+            val duration = Duration.between(start, endTime)
             
             val completedTask = CompletedTask(
-                name = name,
-                startTime = startTime!!,
+                name = task,
+                startTime = start,
                 endTime = endTime,
                 duration = duration
             )
