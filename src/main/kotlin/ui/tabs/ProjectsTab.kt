@@ -46,7 +46,7 @@ fun ProjectsTab(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Neues Projekt erstellen
+        // Create new project
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -75,7 +75,7 @@ fun ProjectsTab(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Projekt-Liste
+        // Project list
         if (projects.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth()

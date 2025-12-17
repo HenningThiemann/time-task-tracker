@@ -7,15 +7,15 @@ import model.RunningTask
 import java.time.Duration
 
 /**
- * Facade-Klasse für die Datenbank-Operationen.
- * Delegiert an spezialisierte Repositories für bessere Wartbarkeit.
+ * Facade class for database operations.
+ * Delegates to specialized repositories for better maintainability.
  */
 class Database {
     private val dbConnection: DatabaseConnection = DatabaseConnection()
     private val projectRepository: ProjectRepository = ProjectRepository(dbConnection.connection)
     private val taskRepository: TaskRepository = TaskRepository(dbConnection.connection, projectRepository)
 
-    // === Task-Verwaltung ===
+    // === Task Management ===
 
     fun saveTask(task: CompletedTask) = taskRepository.saveTask(task)
 
@@ -35,7 +35,7 @@ class Database {
     fun findRunningTaskByNameAndProject(name: String, projectName: String?): RunningTask? =
         taskRepository.findRunningTaskByNameAndProject(name, projectName)
 
-    // === Projekt-Verwaltung ===
+    // === Project Management ===
 
     fun createProject(name: String, color: String? = null): Long = projectRepository.createProject(name, color)
 
@@ -52,7 +52,7 @@ class Database {
 
     fun getOrCreateProject(name: String): Project = projectRepository.getOrCreateProject(name)
 
-    // === Verbindungs-Verwaltung ===
+    // === Connection Management ===
 
     fun close() {
         dbConnection.close()

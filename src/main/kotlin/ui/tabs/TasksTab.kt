@@ -109,7 +109,7 @@ fun TasksTab(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Start-Button: nur aktiv wenn kein Task läuft
+            // Start button: only active when no task is running
             Button(
                 onClick = onStartTask,
                 modifier = Modifier.weight(1f),
@@ -118,7 +118,7 @@ fun TasksTab(
                 Text(Strings.BUTTON_START)
             }
 
-            // Fortsetzen-Button: nur sichtbar wenn ein Task pausiert ist
+            // Resume button: only visible when a task is paused
             if (currentTask != null && isPaused) {
                 Button(
                     onClick = { taskManager.resumeTask() },
@@ -132,7 +132,7 @@ fun TasksTab(
                 }
             }
 
-            // Stop-Button: nur aktiv wenn ein Task läuft (auch pausiert)
+            // Stop button: only active when a task is running (also paused)
             Button(
                 onClick = { taskManager.stopTask() },
                 modifier = Modifier.weight(1f),

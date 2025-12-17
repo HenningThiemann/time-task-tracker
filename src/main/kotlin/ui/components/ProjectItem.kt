@@ -62,7 +62,7 @@ fun ProjectItem(
                         )
 
                         Text(
-                            text = "${tasks.size} Aufgabe(n)",
+                            text = "${tasks.size} task(s)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -95,7 +95,7 @@ fun ProjectItem(
 
                     if (tasks.isEmpty()) {
                         Text(
-                            text = "Keine Aufgaben für dieses Projekt",
+                            text = "No tasks for this project",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(8.dp)

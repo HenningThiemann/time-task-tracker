@@ -8,34 +8,34 @@ import java.awt.image.BufferedImage
 import java.time.Duration
 
 fun createTrayIcon(currentTask: String?, elapsedTime: Duration, showColon: Boolean): BufferedImage {
-    // macOS Menu Bar Icons: Template Images mit @2x für Retina
-    // Standard-Höhe: 22pt (44px @2x)
-    // Breite variabel, aber kompakt wie die Uhrzeit
-    val height = 44  // @2x für Retina
-    val width = 60   // Kompakt für "H:MM" Format (wie macOS Uhrzeit)
+    // macOS Menu Bar Icons: Template Images with @2x for Retina
+    // Standard height: 22pt (44px @2x)
+    // Width variable, but compact like the clock time
+    val height = 44  // @2x for Retina
+    val width = 60   // Compact for "H:MM" format (like macOS clock)
 
     val img = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
     val g = img.createGraphics()
 
-    // High-Quality Rendering für Retina
+    // High-Quality Rendering for Retina
     g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
     g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
     g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
 
-    // Transparenter Hintergrund
+    // Transparent background
     g.composite = AlphaComposite.Clear
     g.fillRect(0, 0, width, height)
     g.composite = AlphaComposite.SrcOver
 
-    // Schwarzer Text (Template Image - macOS invertiert automatisch)
+    // Black text (Template Image - macOS inverts automatically)
     g.color = Color.WHITE
 
-    // System-Font ähnlich wie macOS Menüleiste (SF Pro auf macOS)
-    // Wir verwenden SansSerif mit normaler Stärke für bessere Lesbarkeit
-    val fontSize = 26  // @2x Größe, entspricht ~13pt
+    // System font similar to macOS menu bar (SF Pro on macOS)
+    // We use SansSerif with normal weight for better readability
+    val fontSize = 26  // @2x size, corresponds to ~13pt
     g.font = Font(".AppleSystemUIFont", Font.PLAIN, fontSize)
 
-    // Fallback falls System-Font nicht verfügbar
+    // Fallback if system font is not available
     if (g.font.family == "Dialog") {
         g.font = Font(Font.SANS_SERIF, Font.PLAIN, fontSize)
     }
@@ -43,7 +43,7 @@ fun createTrayIcon(currentTask: String?, elapsedTime: Duration, showColon: Boole
     val text = formatDurationForTray(duration = elapsedTime, showColon = showColon)
     val fontMetrics = g.fontMetrics
 
-    // Zentriere den Text
+    // Center the text
     val textWidth = fontMetrics.stringWidth(text)
     val x = (width - textWidth) / 2
     val y = (height - fontMetrics.height) / 2 + fontMetrics.ascent

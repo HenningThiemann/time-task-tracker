@@ -25,17 +25,17 @@ import java.time.Duration
 fun main() = application {
     var isVisible by remember { mutableStateOf(true) }
     val taskManager = remember {
-        Logger.info("Main", "TaskManager wird initialisiert...")
+        Logger.info("Main", "Initializing TaskManager...")
         TaskManager()
     }
     var trayIcon by remember { mutableStateOf(createTrayIcon(null, Duration.ZERO, false)) }
     var tooltipText by remember { mutableStateOf(Strings.APP_TITLE) }
     var showColon by remember { mutableStateOf(true) }
 
-    // Schließe Datenbankverbindung beim Beenden
+    // Close database connection on shutdown
     DisposableEffect(Unit) {
         onDispose {
-            Logger.info("Main", "Anwendung wird beendet...")
+            Logger.info("Main", "Application is shutting down...")
             taskManager.close()
             Logger.close()
         }
@@ -73,17 +73,17 @@ fun main() = application {
         tooltip = tooltipText,
         menu = {
             Item(Strings.MENU_SHOW_WINDOW) {
-                Logger.debug("Main", "Fenster wird über Tray-Menü geöffnet")
+                Logger.debug("Main", "Window opens via tray menu")
                 isVisible = true
             }
             Separator()
             Item(Strings.MENU_QUIT) {
-                Logger.info("Main", "Beenden über Tray-Menü ausgewählt")
+                Logger.info("Main", "Exit via tray menu selected")
                 exitApplication()
             }
         },
         onAction = {
-            Logger.debug("Main", "Fenster wird über Tray-Icon-Klick geöffnet")
+            Logger.debug("Main", "Window opens by clicking on tray icon")
             isVisible = true
         }
     )
@@ -91,7 +91,7 @@ fun main() = application {
     if (isVisible) {
         Window(
             onCloseRequest = {
-                Logger.debug("Main", "Fenster wird geschlossen")
+                Logger.debug("Main", "Closing window")
                 isVisible = false
             },
             title = Strings.APP_TITLE,
@@ -129,18 +129,18 @@ fun TimeTaskTrackerApp(taskManager: TaskManager) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header mit Tabs und Dark Mode Toggle
+            // Header with Tabs and Dark Mode Toggle
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Title und Dark Mode Button
+                // Title and Dark Mode Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Spacer(modifier = Modifier.width(48.dp)) // Platzhalter für Symmetrie
+                    Spacer(modifier = Modifier.width(48.dp)) // Placeholder for symmetry
 
                     Text(
                         text = Strings.APP_TITLE,

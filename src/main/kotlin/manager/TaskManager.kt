@@ -37,12 +37,12 @@ class TaskManager {
         try {
             val runningTask = taskRepository.getRunningTask()
             if (runningTask != null) {
-                // Task wird geladen, aber NICHT automatisch gestartet
-                // Der Benutzer muss den Task manuell fortsetzen
+                // Task is loaded, but NOT automatically started
+                // The user must manually resume the task
                 currentTask.value = runningTask.name
                 currentProject.value = runningTask.project
                 runningTaskId = runningTask.id
-                // sessionStartTime bleibt null -> Task ist pausiert
+                // sessionStartTime remains null -> task is paused
                 sessionStartTime = null
                 accumulatedDuration = runningTask.accumulatedDuration
                 elapsedTime.value = accumulatedDuration
@@ -55,7 +55,7 @@ class TaskManager {
 
     private fun loadTasksFromDatabase() {
         try {
-            // Lade alle Tasks für Projekt-Übersicht, nicht nur die letzten
+            // Load all tasks for project overview, not just the recent ones
             val tasks = taskRepository.getAllTasks()
             taskHistory.value = tasks
         } catch (e: Exception) {
@@ -73,7 +73,7 @@ class TaskManager {
         }
     }
 
-    // Projekt-Verwaltung
+    // Project Management
     fun createProject(name: String, color: String? = null) {
         try {
             projectRepository.createProject(name, color)
@@ -101,7 +101,7 @@ class TaskManager {
         }
     }
 
-    // Task-Verwaltung
+    // Task Management
     fun deleteTask(task: CompletedTask) {
         try {
             taskRepository.deleteTask(task)
@@ -129,7 +129,7 @@ class TaskManager {
     }
 
     fun resumeTask() {
-        // Setzt einen pausierten Task fort
+        // Resumes a paused task
         if (runningTaskId != null && sessionStartTime == null) {
             sessionStartTime = LocalDateTime.now()
             lastSaveTime = LocalDateTime.now()
@@ -142,7 +142,7 @@ class TaskManager {
             val existingTask = taskRepository.findRunningTaskByNameAndProject(task.name, task.project)
 
             if (existingTask != null) {
-                // Task läuft bereits - setze ihn als aktuellen Task fort und starte Timer
+                // Task is already running - resume it as current task and start timer
                 currentTask.value = existingTask.name
                 currentProject.value = existingTask.project
                 runningTaskId = existingTask.id
@@ -152,7 +152,7 @@ class TaskManager {
                 lastSaveTime = LocalDateTime.now()
                 isPaused.value = false
             } else {
-                // Task läuft noch nicht - erstelle einen neuen
+                // Task is not running yet - create a new one
                 if (currentTask.value != null) {
                     stopTask()
                 }
@@ -178,7 +178,7 @@ class TaskManager {
                 e.printStackTrace()
             }
         } else if (taskId != null) {
-            // Task ist pausiert, stoppe ihn ohne zusätzliche Dauer
+            // Task is paused, stop it without additional duration
             try {
                 taskRepository.stopTask(taskId, Duration.ZERO)
                 loadTasksFromDatabase()

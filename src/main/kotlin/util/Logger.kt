@@ -12,18 +12,18 @@ object Logger {
     private var fileWriter: PrintWriter? = null
 
     init {
-        // Erstelle Log-Verzeichnis im user home
+        // Create log directory in user home
         val logDir = File(System.getProperty("user.home"), "Library/Logs/TimeTaskTracker")
         logDir.mkdirs()
 
         logFile = File(logDir, "app.log")
 
         try {
-            // Append-Modus, damit alte Logs nicht überschrieben werden
+            // Append mode, so old logs are not overwritten
             fileWriter = PrintWriter(FileWriter(logFile, true), true)
-            info("Logger", "=== TimeTaskTracker gestartet ===")
+            info("Logger", "=== TimeTaskTracker started ===")
         } catch (e: Exception) {
-            System.err.println("ERROR: Konnte Log-Datei nicht erstellen: ${e.message}")
+            System.err.println("ERROR: Could not create log file: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -32,10 +32,10 @@ object Logger {
         val timestamp = dateFormat.format(Date())
         val logMessage = "[$timestamp] [$level] [$tag] $message"
 
-        // In Console ausgeben
+        // Print to console
         println(logMessage)
 
-        // In Datei schreiben
+        // Write to file
         try {
             fileWriter?.println(logMessage)
             throwable?.let {
@@ -43,7 +43,7 @@ object Logger {
                 it.printStackTrace(fileWriter)
             }
         } catch (e: Exception) {
-            System.err.println("ERROR: Konnte nicht in Log-Datei schreiben: ${e.message}")
+            System.err.println("ERROR: Could not write to log file: ${e.message}")
         }
     }
 
@@ -64,7 +64,7 @@ object Logger {
     }
 
     fun close() {
-        info("Logger", "=== TimeTaskTracker beendet ===")
+        info("Logger", "=== TimeTaskTracker terminated ===")
         fileWriter?.close()
     }
 }

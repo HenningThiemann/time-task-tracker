@@ -9,21 +9,21 @@ class DatabaseConnection {
     val connection: Connection
 
     init {
-        // Erstelle Verzeichnis im Benutzerverzeichnis
+        // Create directory in user home directory
         val homeDir = System.getProperty("user.home")
         val dbDir = Paths.get(homeDir, ".time-tracking")
         Files.createDirectories(dbDir)
 
-        // Verbinde zur SQLite-Datenbank
+        // Connect to SQLite database
         val dbPath = dbDir.resolve("tasks.db")
         connection = DriverManager.getConnection("jdbc:sqlite:$dbPath")
 
-        // Erstelle Tabellen falls nicht vorhanden
+        // Create tables if they don't exist
         createTablesIfNotExists()
     }
 
     private fun createTablesIfNotExists() {
-        // Projekte-Tabelle
+        // Projects table
         val projectsTableSql = """
             CREATE TABLE IF NOT EXISTS projects (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +33,7 @@ class DatabaseConnection {
             )
         """.trimIndent()
 
-        // Tasks-Tabelle mit Foreign Key zu Projekten
+        // Tasks table with foreign key to projects
         val tasksTableSql = """
             CREATE TABLE IF NOT EXISTS completed_tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
