@@ -1,0 +1,159 @@
+package ui.tabs
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import config.Config
+import config.Strings
+import manager.TaskManager
+import model.CompletedTask
+import model.Project
+import ui.components.CurrentTaskCard
+import ui.components.TaskHistoryItem
+import java.time.Duration
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TasksTab(
+    taskManager: TaskManager,
+    currentTask: String?,
+    currentProject: String?,
+    elapsedTime: Duration,
+    taskHistory: List<CompletedTask>,
+    projects: List<Project>,
+    taskName: String,
+    projectName: String,
+    onTaskNameChange: (String) -> Unit,
+    onProjectNameChange: (String) -> Unit,
+    onStartTask: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Current Task Display
+        CurrentTaskCard(
+            currentTask = currentTask,
+            currentProject = currentProject,
+            elapsedTime = elapsedTime
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Task Input and Controls
+        OutlinedTextField(
+            value = taskName,
+            onValueChange = onTaskNameChange,
+            label = { Text(Strings.TASK_NAME_LABEL) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = currentTask == null,
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Projekt-Auswahl
+        var expandedProjectDropdown by remember { mutableStateOf(false) }
+
+        ExposedDropdownMenuBox(
+            expanded = expandedProjectDropdown,
+            onExpandedChange = { expandedProjectDropdown = !expandedProjectDropdown && currentTask == null }
+        ) {
+            OutlinedTextField(
+                value = projectName,
+                onValueChange = onProjectNameChange,
+                label = { Text(Strings.PROJECT_LABEL) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                enabled = currentTask == null,
+                singleLine = true,
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedProjectDropdown)
+                }
+            )
+
+            ExposedDropdownMenu(
+                expanded = expandedProjectDropdown,
+                onDismissRequest = { expandedProjectDropdown = false }
+            ) {
+                projects.forEach { project ->
+                    DropdownMenuItem(
+                        text = { Text(project.name) },
+                        onClick = {
+                            onProjectNameChange(project.name)
+                            expandedProjectDropdown = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Button(
+                onClick = onStartTask,
+                modifier = Modifier.weight(1f),
+                enabled = currentTask == null && taskName.isNotBlank()
+            ) {
+                Text(Strings.BUTTON_START)
+            }
+
+            Button(
+                onClick = { taskManager.stopTask() },
+                modifier = Modifier.weight(1f),
+                enabled = currentTask != null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(Strings.BUTTON_STOP)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Task History
+        if (taskHistory.isNotEmpty()) {
+            Text(
+                text = Strings.HISTORY_TITLE,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    taskHistory.reversed().take(Config.MAX_HISTORY_ITEMS_DISPLAYED).forEach { task ->
+                        TaskHistoryItem(
+                            task = task,
+                            onRestart = { completedTask ->
+                                if (currentTask == null) {
+                                    taskManager.restartTask(completedTask)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
