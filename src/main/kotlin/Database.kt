@@ -44,8 +44,9 @@ class Database {
                 name TEXT NOT NULL,
                 project_id INTEGER,
                 start_time TEXT NOT NULL,
-                end_time TEXT NOT NULL,
-                duration_seconds INTEGER NOT NULL,
+                end_time TEXT,
+                duration_seconds INTEGER NOT NULL DEFAULT 0,
+                is_completed BOOLEAN NOT NULL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
             )
@@ -151,6 +152,130 @@ class Database {
 
     fun close() {
         connection.close()
+    }
+
+    // === Task-Verwaltung (Start/Stop) ===
+
+    fun startTask(name: String, projectName: String?): Long {
+        val sql = """
+            INSERT INTO completed_tasks (name, project_id, start_time, duration_seconds, is_completed)
+            VALUES (?, ?, ?, 0, 0)
+        """.trimIndent()
+
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, name)
+
+            if (projectName != null) {
+                val project = getOrCreateProject(projectName)
+                stmt.setLong(2, project.id)
+            } else {
+                stmt.setNull(2, java.sql.Types.INTEGER)
+            }
+
+            stmt.setString(3, LocalDateTime.now().format(dateTimeFormatter))
+            stmt.executeUpdate()
+
+            // Hole die generierte ID
+            val rs = stmt.generatedKeys
+            if (rs.next()) {
+                return rs.getLong(1)
+            }
+            throw SQLException("Failed to start task, no ID obtained")
+        }
+    }
+
+    fun stopTask(taskId: Long, additionalDuration: Duration) {
+        val sql = """
+            UPDATE completed_tasks
+            SET end_time = ?,
+                duration_seconds = duration_seconds + ?
+            WHERE id = ?
+        """.trimIndent()
+
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, LocalDateTime.now().format(dateTimeFormatter))
+            stmt.setLong(2, additionalDuration.seconds)
+            stmt.setLong(3, taskId)
+            stmt.executeUpdate()
+        }
+    }
+
+    fun updateTaskDuration(taskId: Long, additionalDuration: Duration) {
+        val sql = """
+            UPDATE completed_tasks
+            SET duration_seconds = duration_seconds + ?
+            WHERE id = ?
+        """.trimIndent()
+
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setLong(1, additionalDuration.seconds)
+            stmt.setLong(2, taskId)
+            stmt.executeUpdate()
+        }
+    }
+
+    fun getRunningTask(): RunningTask? {
+        val sql = """
+            SELECT t.id, t.name, p.name as project_name, t.start_time, t.duration_seconds
+            FROM completed_tasks t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.is_completed = 0
+            ORDER BY t.start_time DESC
+            LIMIT 1
+        """.trimIndent()
+
+        connection.createStatement().use { stmt ->
+            val rs: ResultSet = stmt.executeQuery(sql)
+            if (rs.next()) {
+                return RunningTask(
+                    id = rs.getLong("id"),
+                    name = rs.getString("name"),
+                    project = rs.getString("project_name"),
+                    startTime = LocalDateTime.parse(rs.getString("start_time"), dateTimeFormatter),
+                    accumulatedDuration = Duration.ofSeconds(rs.getLong("duration_seconds"))
+                )
+            }
+        }
+        return null
+    }
+
+    fun findRunningTaskByNameAndProject(name: String, projectName: String?): RunningTask? {
+        val sql = if (projectName == null) {
+            """
+            SELECT t.id, t.name, p.name as project_name, t.start_time, t.duration_seconds
+            FROM completed_tasks t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.is_completed = 0 AND t.name = ? AND t.project_id IS NULL
+            LIMIT 1
+            """.trimIndent()
+        } else {
+            """
+            SELECT t.id, t.name, p.name as project_name, t.start_time, t.duration_seconds
+            FROM completed_tasks t
+            LEFT JOIN projects p ON t.project_id = p.id
+            WHERE t.is_completed = 0 AND t.name = ? AND p.name = ?
+            LIMIT 1
+            """.trimIndent()
+        }
+
+        connection.prepareStatement(sql).use { stmt ->
+            stmt.setString(1, name)
+            if (projectName != null) {
+                stmt.setString(2, projectName)
+            }
+
+            val rs: ResultSet = stmt.executeQuery()
+            if (rs.next()) {
+                return RunningTask(
+                    id = rs.getLong("id"),
+                    name = rs.getString("name"),
+                    project = rs.getString("project_name"),
+                    startTime = LocalDateTime.parse(rs.getString("start_time"), dateTimeFormatter),
+                    accumulatedDuration = Duration.ofSeconds(rs.getLong("duration_seconds"))
+                )
+            }
+        }
+        return null
     }
 
     // === Projekt-Verwaltung ===
@@ -276,4 +401,3 @@ class Database {
         }
     }
 }
-

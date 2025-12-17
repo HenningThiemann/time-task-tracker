@@ -574,17 +574,41 @@ class TaskManager {
     val taskHistory = mutableStateOf<List<CompletedTask>>(emptyList())
     val projects = mutableStateOf<List<Project>>(emptyList())
 
-    private var startTime: LocalDateTime? = null
+    private var runningTaskId: Long? = null
+    private var sessionStartTime: LocalDateTime? = null
+    private var accumulatedDuration: Duration = Duration.ZERO
     private val database: Database = Database()
 
     companion object {
-        private const val MAX_HISTORY_SIZE = 100 // Keep last 100 tasks to prevent unbounded growth
+        private const val MAX_HISTORY_SIZE = 100
+        private const val SAVE_INTERVAL_SECONDS = 10L // Speichere alle 10 Sekunden
     }
+
+    private var lastSaveTime: LocalDateTime? = null
 
     init {
         // Lade gespeicherte Tasks aus der Datenbank
         loadTasksFromDatabase()
         loadProjectsFromDatabase()
+
+        // Lade laufenden Task falls vorhanden
+        loadRunningTask()
+    }
+
+    private fun loadRunningTask() {
+        try {
+            val runningTask = database.getRunningTask()
+            if (runningTask != null) {
+                currentTask.value = runningTask.name
+                currentProject.value = runningTask.project
+                runningTaskId = runningTask.id
+                sessionStartTime = LocalDateTime.now()
+                accumulatedDuration = runningTask.accumulatedDuration
+                elapsedTime.value = accumulatedDuration
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun loadTasksFromDatabase() {
@@ -593,7 +617,6 @@ class TaskManager {
             taskHistory.value = tasks
         } catch (e: Exception) {
             e.printStackTrace()
-            // Falls Fehler beim Laden, verwende leere Liste
             taskHistory.value = emptyList()
         }
     }
@@ -636,59 +659,121 @@ class TaskManager {
     }
 
     fun startTask(taskName: String, projectName: String? = null) {
-        currentTask.value = taskName
-        currentProject.value = projectName
-        startTime = LocalDateTime.now()
-        elapsedTime.value = Duration.ZERO
+        try {
+            // Speichere Task sofort in der DB
+            val taskId = database.startTask(taskName, projectName)
+
+            currentTask.value = taskName
+            currentProject.value = projectName
+            runningTaskId = taskId
+            sessionStartTime = LocalDateTime.now()
+            accumulatedDuration = Duration.ZERO
+            elapsedTime.value = Duration.ZERO
+            lastSaveTime = LocalDateTime.now()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun restartTask(task: CompletedTask) {
-        startTask(task.name, task.project)
+        try {
+            // Prüfe ob ein Task mit diesem Namen und Projekt bereits läuft
+            val existingTask = database.findRunningTaskByNameAndProject(task.name, task.project)
+
+            if (existingTask != null) {
+                // Task läuft bereits - setze ihn als aktuellen Task fort
+                currentTask.value = existingTask.name
+                currentProject.value = existingTask.project
+                runningTaskId = existingTask.id
+                sessionStartTime = LocalDateTime.now()
+                accumulatedDuration = existingTask.accumulatedDuration
+                elapsedTime.value = accumulatedDuration
+                lastSaveTime = LocalDateTime.now()
+            } else {
+                // Task läuft noch nicht - erstelle einen neuen
+                // Stoppe aktuellen Task falls ein anderer läuft
+                if (currentTask.value != null) {
+                    stopTask()
+                }
+
+                // Starte neuen Task
+                startTask(task.name, task.project)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun stopTask() {
-        val task = currentTask.value
-        val project = currentProject.value
-        val start = startTime
+        val taskId = runningTaskId
+        val sessionStart = sessionStartTime
 
-        if (task != null && start != null) {
-            val endTime = LocalDateTime.now()
-            val duration = Duration.between(start, endTime)
-
-            val completedTask = CompletedTask(
-                name = task,
-                project = project,
-                startTime = start,
-                endTime = endTime,
-                duration = duration
-            )
-
-            // Speichere Task in der Datenbank
+        if (taskId != null && sessionStart != null) {
             try {
-                database.saveTask(completedTask)
-                // Aktualisiere die History aus der Datenbank
+                // Berechne zusätzliche Dauer seit letztem Save
+                val now = LocalDateTime.now()
+                val additionalDuration = Duration.between(sessionStart, now)
+
+                // Speichere finalen Task in DB
+                database.stopTask(taskId, additionalDuration)
+
+                // Lade Task-History neu
                 loadTasksFromDatabase()
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Falls DB-Fehler, füge nur zur In-Memory-Liste hinzu
-                val newHistory = (taskHistory.value + completedTask).takeLast(MAX_HISTORY_SIZE)
-                taskHistory.value = newHistory
             }
         }
 
         currentTask.value = null
         currentProject.value = null
-        startTime = null
+        runningTaskId = null
+        sessionStartTime = null
+        accumulatedDuration = Duration.ZERO
         elapsedTime.value = Duration.ZERO
+        lastSaveTime = null
     }
 
     fun updateElapsedTime() {
-        startTime?.let {
-            elapsedTime.value = Duration.between(it, LocalDateTime.now())
+        val sessionStart = sessionStartTime
+        val taskId = runningTaskId
+
+        if (sessionStart != null && taskId != null) {
+            val now = LocalDateTime.now()
+            val sessionDuration = Duration.between(sessionStart, now)
+            elapsedTime.value = accumulatedDuration.plus(sessionDuration)
+
+            // Speichere periodisch in die DB
+            val lastSave = lastSaveTime
+            if (lastSave == null || Duration.between(lastSave, now).seconds >= SAVE_INTERVAL_SECONDS) {
+                try {
+                    // Aktualisiere akkumulierte Dauer in DB
+                    database.updateTaskDuration(taskId, sessionDuration)
+
+                    // Aktualisiere lokale Variablen
+                    accumulatedDuration = accumulatedDuration.plus(sessionDuration)
+                    sessionStartTime = now
+                    lastSaveTime = now
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
     fun close() {
+        // Speichere laufenden Task bevor geschlossen wird
+        if (runningTaskId != null) {
+            val sessionStart = sessionStartTime
+            if (sessionStart != null) {
+                try {
+                    val now = LocalDateTime.now()
+                    val additionalDuration = Duration.between(sessionStart, now)
+                    database.updateTaskDuration(runningTaskId!!, additionalDuration)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
         database.close()
     }
 }
@@ -705,6 +790,14 @@ data class Project(
     val id: Long,
     val name: String,
     val color: String? = null
+)
+
+data class RunningTask(
+    val id: Long,
+    val name: String,
+    val project: String? = null,
+    val startTime: LocalDateTime,
+    val accumulatedDuration: Duration
 )
 
 fun formatDuration(duration: Duration): String {
